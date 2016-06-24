@@ -1,8 +1,10 @@
 import Ember from 'ember';
+import Pac from '../models/pac';
+import SharedStuff from '../mixins/shared-stuff';
 import KeyboardShortcuts from 'ember-keyboard-shortcuts/mixins/component';
 
 export
-default Ember.Component.extend(KeyboardShortcuts, {
+default Ember.Component.extend(KeyboardShortcuts, SharedStuff, {
     ctx: Ember.computed(function() {
         let canvas = document.getElementById("myCanvas");
         let ctx = canvas.getContext("2d");
@@ -10,8 +12,6 @@ default Ember.Component.extend(KeyboardShortcuts, {
     }),
     score: 0,
     levelNumber: 1,
-    x: 1,
-    y: 2,
     squareSize: 40,
     //0 is a blankspace 
     //1 is a wall
@@ -25,8 +25,9 @@ default Ember.Component.extend(KeyboardShortcuts, {
         [1, 2, 2, 2, 2, 2, 2, 1],
     ],
     isMoving: false,
-    direction: 'down',
     didInsertElement() {
+        let pac = Pac.create();
+        this.set('pac', pac);
         this.movementLoop();
     },
     screenPixelWidth: Ember.computed(function() {
@@ -58,12 +59,6 @@ default Ember.Component.extend(KeyboardShortcuts, {
                 }
             });
         });
-    },
-    drawPac() {
-        let x = this.get('x');
-        let y = this.get('y');
-        let radiusDivisor = 2;
-        this.drawCircle(x, y, radiusDivisor, this.get('direction'));
     },
     drawCircle(x, y, radiusDivisor, direction) {
         let ctx = this.get('ctx');
@@ -131,36 +126,22 @@ default Ember.Component.extend(KeyboardShortcuts, {
 
             this.set('frameCycle', 1);
             this.processAnyPellets();
-            this.changePacDirection();
+            this.changeDirection();
         } else if (this.get('direction') == 'stopped') {
-            this.changePacDirection();
+            this.changeDirection();
         } else {
             this.incrementProperty('frameCycle');
         }
         this.clearScreen();
         this.drawGrid();
-        this.drawPac();
+        this.draw();
 
         Ember.run.later(this, this.movementLoop, 1000 / 60);
     },
-    changePacDirection() {
-        let intent = this.get('intent');
-        if (this.pathBlockedInDirection(intent)) {
-            this.set('direction', 'stopped');
-        } else {
-            this.set('direction', intent);
-        }
-    },
-
-
     nextCoordinate(coordinate, direction) {
         let nextCoordinate = this.get(coordinate) + this.get(`directions.${direction}.${coordinate}`);
         //console.log(`nextCoordinate: ${nextCoordinate}`);
         return nextCoordinate;
-    },
-    pathBlockedInDirection(direction) {
-        let cellTypeInDirection = this.cellTypeInDirection(direction);
-        return Ember.isEmpty(cellTypeInDirection) || cellTypeInDirection === 1;
     },
     cellTypeInDirection(direction) {
         let nextX = this.nextCoordinate('x', direction);
@@ -226,7 +207,6 @@ default Ember.Component.extend(KeyboardShortcuts, {
             y: 0
         }
     },
-    intent: 'down',
     keyboardShortcuts: {
         up() {
                 this.set('intent', 'up');
